@@ -1,0 +1,25 @@
+// Visual Studio Code C/C++ 项目的配置文件,如何配置 IntelliSense 和代码分析工具以支持你的项目
+{
+    "configurations": [
+        {
+            "name": "Linux", // 配置名称
+            "includePath": [ //头文件的搜索路径,告诉IntelliSense如何搜索头文件以完成代码提示
+                "${workspaceFolder}/**",
+                "/home/jjb/libtorch/include/**",
+                "/home/jjb/libtorch/include/torch/csrc/api/include/**"
+            ],
+            "defines": [ // 预处理器宏
+                "_DEBUG", // 调试版本,发布版本为"NDEBUG"(默认)
+                "UNICODE", // Windows 平台上编写 Unicode 兼容的程序
+                "_UNICODE" // Windows 平台上编写 Unicode 兼容的程序
+            ],
+            "compilerPath": "/usr/bin/gcc", // 编译器路径
+            // "compileCommands": "${workspaceFolder}/build/compile_commands.json",// 编译命令文件路径
+            "cStandard": "c17", // C 标准
+            "cppStandard": "gnu++23", // C++ 标准,建议使用最新,否则出现成员不存在的问题
+            "intelliSenseMode": "linux-gcc-x64", // IntelliSense 模式
+            "configurationProvider": "ms-vscode.makefile-tools" // 配置提供者,这里使用 Makefile Tools提供项目配置信息
+        }
+    ],
+    "version": 4 //指定了配置文件的版本号
+}
