@@ -1,7 +1,9 @@
 #include <torch/torch.h>
 #include <iostream>
 #include <vector>
+#include <opencv2/opencv.hpp>
 #include "linear_regression.h"
+#include "image_classification.h"
 void tensor_create();
 void tensor_index();
 void tensor_operation();
@@ -13,9 +15,8 @@ int main()
     // tensor_create();
     // tensor_index();
     // tensor_operation();
-    simulate_linear_regression();
     // simulate_linear_regression();
-    // simulate_img_classification();
+    simulate_img_classification();
 }
 
 // 创建tensor
@@ -269,10 +270,33 @@ void simulate_linear_regression()
 // 模拟图像分类
 void simulate_img_classification()
 {
-    // 输入张量
-    torch::Tensor img = torch::randn({1, 3, 224, 224});
-    // 卷积核张量
-    torch::Tensor w = torch::randn({64, 3, 3, 3}, torch::requires_grad(false));
-    // 输出张量
+    int image_size[2] = {64, 64};
+    int rgb_channel = 3;
 
+    std::shared_ptr<ImageClassification> model_ptr = std::make_shared<ImageClassification>(ImageClassification(rgb_channel, 5, 4));
+    torch::optim::SGD optimizer(model_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
+    for (int epoch = 0; epoch < 100; epoch++)
+    {
+        // 输入张量
+        cv::Mat img_ = cv::imread("/home/jjb/libtorch_code/data/test.jpg", cv::IMREAD_COLOR);
+        cv::cvtColor(img_, img_, cv::COLOR_BGR2RGB);
+        img_.resize(image_size[0], image_size[1]);
+        img_.convertTo(img_, CV_32FC3, 1.0f / 255.0f); // 转换为RGB格式,注意
+        // 注意cv数据类型要与from_blob获得Tnesor数据类型一致,内存数据才能正确转换
+        torch::Tensor img = torch::from_blob(img_.data, {1, rgb_channel, image_size[0], image_size[1]}, torch::TensorOptions().dtype(torch::kFloat32));
+        // 模拟批量
+        img = img.repeat({10, 1, 1, 1});
+        torch::Tensor label = torch::one_hot(torch::ones(10, torch::kInt64), 5).toType(torch::kFloat32);
+        // std::cout << "Image Size: " << std::endl
+        //           << img.sizes() << std::endl;
+
+        torch::Tensor pred = model_ptr->forward(img);
+        // std::cout << "pred:" << std::endl
+        //           << pred << std::endl
+        //           << pred.sizes();
+        torch::Tensor loss = torch::cross_entropy_loss(pred, label);
+        loss.backward();
+        optimizer.step();
+        std::cout << "epoch: " << epoch << " loss: " << loss.item<float>() << std::endl;
+    }
 }

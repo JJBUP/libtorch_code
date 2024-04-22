@@ -4,7 +4,6 @@
 LinearRegression::LinearRegression(int64_t input_size, int64_t output_size)
 {
     linear_layer = torch::nn::Sequential(
-
         torch::nn::Linear(input_size, output_size),
         torch::nn::BatchNorm1d(output_size),
         torch::nn::ReLU());

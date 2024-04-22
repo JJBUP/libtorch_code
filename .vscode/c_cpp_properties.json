@@ -6,6 +6,7 @@
             "includePath": [ //头文件的搜索路径,告诉IntelliSense如何搜索头文件以完成代码提示
                 "${workspaceFolder}/**",
                 "/home/jjb/libtorch/include/**",
+                "/home/jjb/opencv-4.9.0-compile/include/**",
                 "/home/jjb/libtorch/include/torch/csrc/api/include/**"
             ],
             "defines": [ // 预处理器宏
