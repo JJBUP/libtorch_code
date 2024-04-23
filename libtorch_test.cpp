@@ -299,4 +299,16 @@ void simulate_img_classification()
         optimizer.step();
         std::cout << "epoch: " << epoch << " loss: " << loss.item<float>() << std::endl;
     }
+
+    // test
+    cv::Mat img_ = cv::imread("/home/jjb/libtorch_code/data/test.jpg", cv::IMREAD_COLOR);
+    cv::cvtColor(img_, img_, cv::COLOR_BGR2RGB);
+    img_.resize(image_size[0], image_size[1]);
+    img_.convertTo(img_, CV_32FC3, 1.0f / 255.0f);
+    torch::Tensor img = torch::from_blob(img_.data, {1, rgb_channel, image_size[0], image_size[1]}, torch::TensorOptions().dtype(torch::kFloat32));
+
+    img = img.repeat({10, 1, 1, 1});
+    torch::Tensor pred = model_ptr->forward(img);
+    torch::Tensor result = pred.softmax(1).amax(1);
+    std::cout<<"result:"<<std::endl<<result<<std::endl;
 }
