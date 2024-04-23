@@ -4,19 +4,20 @@
 #include <opencv2/opencv.hpp>
 #include "linear_regression.h"
 #include "image_classification.h"
+#include "image_dataset.h"
 void tensor_create();
 void tensor_index();
 void tensor_operation();
 void auto_grad();
-void simulate_linear_regression();
-void simulate_img_classification();
+void linear_regression();
+void img_classification();
 int main()
 {
     // tensor_create();
     // tensor_index();
     // tensor_operation();
-    // simulate_linear_regression();
-    simulate_img_classification();
+    // linear_regression();
+    img_classification();
 }
 
 // 创建tensor
@@ -237,7 +238,7 @@ void auto_grad()
 }
 
 // 模拟线性回归
-void simulate_linear_regression()
+void linear_regression()
 {
     torch::manual_seed(1);
     int input_size = 5;
@@ -268,7 +269,7 @@ void simulate_linear_regression()
 }
 
 // 模拟图像分类
-void simulate_img_classification()
+void img_classification()
 {
     int image_size[2] = {64, 64};
     int rgb_channel = 3;
@@ -310,5 +311,21 @@ void simulate_img_classification()
     img = img.repeat({10, 1, 1, 1});
     torch::Tensor pred = model_ptr->forward(img);
     torch::Tensor result = pred.softmax(1).amax(1);
-    std::cout<<"result:"<<std::endl<<result<<std::endl;
+    std::cout << "result:" << std::endl
+              << result << std::endl;
+}
+
+void img_classification_dataset()
+{
+    // 元数据
+    std::string root_dir = "./data/Alzheimer_s Dataset";
+    std::map<std::string, int> class_id = {{"MildDemented", 0},
+                                           {"ModerateDemented", 1},
+                                           {"NonDemented", 2},
+                                           {"VeryMildDemented", 3}};
+    ImageDataset *dataset_ptr = new ImageDataset(root_dir, class_id, "train");
+    // ImageDataset dataset(root_dir, class_id);
+    //
+
+    //
 }

@@ -11,7 +11,7 @@ set(CMAKE_PREFIX_PATH "/home/jjb/opencv-4.9.0-compile/")
 find_package(Torch REQUIRED)
 find_package(OpenCV REQUIRED)
 
-add_executable(libtorch_test libtorch_test.cpp linear_regression.cpp image_classification.cpp)
+add_executable(libtorch_test libtorch_test.cpp linear_regression.cpp image_classification.cpp image_dataset.cpp)
 
 # 在 CMake 中包含头文件路径
 include_directories(${TORCH_INCLUDE_DIRS})
