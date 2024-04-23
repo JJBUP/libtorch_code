@@ -3,14 +3,14 @@
 class ImageDataset : public torch::data::Dataset<ImageDataset>
 {
 public:
-    ImageDataset(const std::string &root_dir, const std::map<std::string, int> &class_name, std::string mode = "train"); //,const std::vector<std::string> &transforms)
+    ImageDataset(const std::string &root_dir, const std::map<std::string, int> &class_name, std::string mode); //,const std::vector<std::string> &transforms)
     torch::data::Example<> get(size_t index);
-    std::optional<size_t> size();
-    void recursive_rglob(const std::filesystem::path &directory_path, std::vector<std::filesystem::path> *const paths);
+    std::optional<size_t> size() const override;
+    void recursive_rglob(const std::string &directory_path, std::vector<std::string> *const paths_ptr);
 
 private:
-    std::filesystem::path rd;
+    std::string rd;
     std::map<std::string, int> cls;
-    std::vector<std::filesystem::path> paths;
+    std::vector<std::string> paths;
     std::string md;
 };

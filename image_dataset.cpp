@@ -10,10 +10,13 @@ ImageDataset::ImageDataset(const std::string &root_dir, const std::map<std::stri
   // 获取目录地址
   rd = root_dir;
   md = mode;
-  if (md == "train"){
-    recursive_rglob(std::filesystem::path(rd)/"train", &paths);
-  }else{
-    recursive_rglob(std::filesystem::path(rd)/"test", &paths);
+  if (md == "train")
+  {
+    recursive_rglob(std::filesystem::path(rd) / "train", &paths);
+  }
+  else
+  {
+    recursive_rglob(std::filesystem::path(rd) / "test", &paths);
   }
 }
 torch::data::Example<> ImageDataset::get(size_t index)
@@ -34,12 +37,12 @@ torch::data::Example<> ImageDataset::get(size_t index)
   return {img_, label_};
 }
 // torch::optional<> 用于表示可选值,即值可能存在或不存在
-std::optional<size_t> ImageDataset::size()
-{
+std::optional<size_t> ImageDataset::size() const
+{ // 注意const修饰符也要一致，函数修饰符
   return paths.size();
 }
 // 递归遍历目录
-void ImageDataset::recursive_rglob(const std::filesystem::path &directory_path, std::vector<std::filesystem::path> *const paths)
+void ImageDataset::recursive_rglob(const std::string &directory_path, std::vector<std::string> *const paths_ptr)
 {
 
   for (const auto &entry : std::filesystem::directory_iterator(directory_path))
@@ -47,11 +50,11 @@ void ImageDataset::recursive_rglob(const std::filesystem::path &directory_path, 
     if (std::filesystem::is_regular_file(entry))
     {
       // std::cout << entry.path() << std::endl; // 输出文件的路径
-      paths->push_back(entry.path());
+      paths_ptr->push_back(entry.path());
     }
     else if (std::filesystem::is_directory(entry))
     {
-      recursive_rglob(entry.path(), paths); // 递归遍历子目录
+      recursive_rglob(entry.path(), paths_ptr); // 递归遍历子目录
     }
   }
 }

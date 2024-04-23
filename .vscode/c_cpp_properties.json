@@ -17,7 +17,7 @@
             "compilerPath": "/usr/bin/gcc", // 编译器路径
             // "compileCommands": "${workspaceFolder}/build/compile_commands.json",// 编译命令文件路径
             "cStandard": "c17", // C 标准
-            "cppStandard": "gnu++23", // C++ 标准,建议使用最新,否则出现成员不存在的问题
+            "cppStandard": "gnu++20", // C++ 标准,建议使用最新,否则出现成员不存在的问题
             "intelliSenseMode": "linux-gcc-x64", // IntelliSense 模式
             "configurationProvider": "ms-vscode.makefile-tools" // 配置提供者,这里使用 Makefile Tools提供项目配置信息
         }

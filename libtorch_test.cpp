@@ -11,13 +11,14 @@ void tensor_operation();
 void auto_grad();
 void linear_regression();
 void img_classification();
+void img_classification_dataset();
 int main()
 {
     // tensor_create();
     // tensor_index();
     // tensor_operation();
     // linear_regression();
-    img_classification();
+    img_classification_dataset();
 }
 
 // 创建tensor
@@ -318,14 +319,17 @@ void img_classification()
 void img_classification_dataset()
 {
     // 元数据
-    std::string root_dir = "./data/Alzheimer_s Dataset";
+    std::string root_dir = "../data/Alzheimer_s Dataset";
     std::map<std::string, int> class_id = {{"MildDemented", 0},
                                            {"ModerateDemented", 1},
                                            {"NonDemented", 2},
                                            {"VeryMildDemented", 3}};
-    ImageDataset *dataset_ptr = new ImageDataset(root_dir, class_id, "train");
-    // ImageDataset dataset(root_dir, class_id);
+    // ImageDataset *dataset_ptr = new ImageDataset(root_dir, class_id, "train");
+    std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
     //
-
-    //
+    torch::data::Example<> dl = dataset_ptr->get(0);
+    std::optional<size_t> data_len = dataset_ptr->size(); // 总结一下optioal容器的用法
+    std::cout << "dataset_ptr->size(): " << data_len.value()<<std::endl
+              << "data.data.sizes(): " << dl.data.sizes()<<std::endl
+              << "data.target: " << dl.target << std::endl;
 }
