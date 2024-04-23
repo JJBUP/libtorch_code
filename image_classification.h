@@ -5,8 +5,10 @@ class ImageClassification : public torch::nn::Module
     // int class_num;
     // int stage;
     // ModuleList不好用,其默认存储为Torch::nn::Module类，但是该类没有forward方法
-    // torch::nn::ModuleList conv_list = nullptr; 
+    // torch::nn::ModuleList conv_list = nullptr;
     // torch::nn::ModuleList fc_list = nullptr;
+    // 建议在初始化的时候使用
+    // std::shared_ptr<std::vector<torch::nn::Sequential>> sqs = nullptr;
 private:
     torch::nn::Sequential convs = nullptr;
     torch::nn::Sequential fcs = nullptr;
