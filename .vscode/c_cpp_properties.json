@@ -7,7 +7,7 @@
                 "${workspaceFolder}/**",
                 "/home/jjb/libtorch/include/**",
                 "/home/jjb/opencv-4.9.0-compile/include/**",
-                "/home/jjb/download/libtorch/include/torch/csrc/api/include/**"
+                "/home/jjb/libtorch/include/torch/csrc/api/include/**"
             ],
             "defines": [ // 预处理器宏
                 "_DEBUG", // 调试版本,发布版本为"NDEBUG"(默认)

@@ -71,6 +71,7 @@
         "ctime": "cpp",
         "set": "cpp",
         "iomanip": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "*.ipp": "cpp"
     }
 }

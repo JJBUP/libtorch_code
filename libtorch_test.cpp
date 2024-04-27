@@ -341,51 +341,6 @@ void test_dataset()
               << "data.target: " << dl.target << std::endl;
 }
 
-void alzheimer_s_classification()
-{
-    // // 元数据
-    // int epoch = 100;
-    // std::string root_dir = "../data/Alzheimer_s Dataset";
-    // std::map<std::string, int> class_id = {{"MildDemented", 0},
-    //                                        {"ModerateDemented", 1},
-    //                                        {"NonDemented", 2},
-    //                                        {"VeryMildDemented", 3}};
-    // // 数据读取
-    // std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
-    // // 数据加载
-    // auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*dataset_ptr, 10);
-    // // 模型
-    std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(3, 3));
-    // // 优化器
-    // torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
-
-    // for (int i = 0; i < epoch; i++)
-    // {
-    //     float loss = 0;
-    //     int batch_num = 0;
-    //     for (torch::data::Example<torch::Tensor, torch::Tensor> &batch : *data_loader)
-    //     {
-    //         torch::Tensor img_t = batch.data;
-    //         torch::Tensor label_t = batch.target;
-    //         optimizer.zero_grad();
-    //         torch::Tensor pred = resnet50_ptr->forward(img_t);
-    //         pred.backward();
-    //         optimizer.step();
-    //         torch::Tensor loss = torch::cross_entropy_loss(pred, label_t);
-    //         batch_num++;
-    //     }
-    //     std::cout << "epoch: " << i << " loss: " << loss / batch_num << std::endl;
-    // }
-    torch::serialize::OutputArchive archive_out;
-    resnet50_ptr->save(archive_out);
-    archive_out.save_to("../logs/resnet.pt");
-    std::cout << "save model success" << std::endl;
-    torch::serialize::InputArchive archive_in;
-    archive_in.load_from("../logs/resnet.pt");
-    std::shared_ptr<Resnet50> resnet50_ptr_load = std::make_shared<Resnet50>(Resnet50(3, 3));
-    resnet50_ptr_load->load(archive_in);
-    std::cout << "load model success" << std::endl;
-}
 void object_load_and_save()
 {
     std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(3, 3));
@@ -398,4 +353,61 @@ void object_load_and_save()
     std::shared_ptr<Resnet50> resnet50_ptr_load = std::make_shared<Resnet50>(Resnet50(3, 3)); // 创建一个新的模型
     resnet50_ptr_load->load(archive_in);                                                      // 从archive加载模型参数
     std::cout << "load model success" << std::endl;
+}
+
+void alzheimer_s_classification()
+{
+    // // 元数据
+    int batch_size = 2;
+    int epoch = 100;
+    std::string root_dir = "../data/alzheimer_dataset";
+    std::map<std::string, int> class_id = {{"MildDemented", 0},
+                                           {"ModerateDemented", 1},
+                                           {"NonDemented", 2},
+                                           {"VeryMildDemented", 3}};
+    // 数据读取
+    std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
+    // 数据加载
+    auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
+    // // 模型
+    std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(1, 4));
+    // // 优化器
+    torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
+    // 学习率调整,目前只提供了StepLR,实现其他的学习率调整方式可以参考torch::optim::StepLR
+    torch::optim::StepLR lr_scheduler(optimizer, 100, 0.1);
+
+    for (int i = 0; i < epoch; i++)
+    {
+        float loss = 0;
+        int batch_num = 0;
+        for (const std::vector<torch::data::Example<>> &batch : *data_loader)
+        { // 返回vector包装的批次数据
+            std::vector<torch::Tensor> imgs;
+            std::vector<torch::Tensor> labels;
+            for (torch::data::Example<> data_label : batch)
+            {
+                imgs.push_back(data_label.data);
+                labels.push_back(data_label.target);
+            }
+            torch::Tensor imgs_t = torch::stack(torch::TensorList(imgs));
+            torch::Tensor labels_t = torch::stack(torch::TensorList(labels));
+            // std::cout << "imgs_t:" << std::endl
+            //           << imgs_t.sizes() << std::endl;
+            // std::cout << "labels_t:" << std::endl
+            //           << labels_t.sizes() << std::endl;
+            // 训练
+            resnet50_ptr->train(); // 设置为训练模式
+            torch::Tensor pred = resnet50_ptr->forward(imgs_t);
+            optimizer.zero_grad();
+            std::cout<<pred.sizes()<<std::endl;
+            std::cout<<labels_t.sizes()<<std::endl;
+            torch::Tensor loss = torch::cross_entropy_loss(pred.argmax(-1,false), labels_t);
+            loss.backward();
+            optimizer.step();
+            lr_scheduler.step();
+            batch_num++;
+            std::cout << "loss: " << loss.item<float>() << std::endl;
+        }
+        std::cout << "epoch: " << i << " loss: " << loss / batch_num << std::endl;
+    }
 }

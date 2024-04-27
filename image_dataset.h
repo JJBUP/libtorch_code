@@ -3,6 +3,8 @@
 class ImageDataset : public torch::data::Dataset<ImageDataset>
 {
 public:
+    int average_height = 0;
+    int average_width = 0;
     ImageDataset(const std::string &root_dir, const std::map<std::string, int> &class_name, std::string mode); //,const std::vector<std::string> &transforms)
     torch::data::Example<> get(size_t index);
     std::optional<size_t> size() const override;
@@ -13,4 +15,5 @@ private:
     std::map<std::string, int> cls;
     std::vector<std::string> paths;
     std::string md;
+
 };

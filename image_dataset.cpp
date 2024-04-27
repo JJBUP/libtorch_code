@@ -12,13 +12,25 @@ ImageDataset::ImageDataset(const std::string &root_dir, const std::map<std::stri
   md = mode;
   if (md == "train")
   {
-    recursive_rglob(std::filesystem::path(rd) / "train", &paths);
+    recursive_rglob(rd.append("/train"), &paths);
   }
   else
   {
-    recursive_rglob(std::filesystem::path(rd) / "test", &paths);
+    recursive_rglob(rd.append("/test"), &paths);
   }
+
+  long height = 0;
+  long width = 0;
+  for (auto &path : paths)
+  {
+    cv::Mat img = cv::imread(path);
+    height = height + img.rows;
+    width = width + img.cols;
+  }
+  average_height = height / paths.size();
+  average_width = width / paths.size();
 }
+
 torch::data::Example<torch::Tensor, torch::Tensor> ImageDataset::get(size_t index)
 {
   // 如果像传递多个值，则需要使用std::tuple<T1, T2, ...>或重写结构体模板
@@ -27,13 +39,15 @@ torch::data::Example<torch::Tensor, torch::Tensor> ImageDataset::get(size_t inde
   // 获取类别名称
   std::string label_staing = path.parent_path().stem().string();
   long label = cls[label_staing];
-  // 读取图片
-  cv::Mat img = cv::imread(path.string());
-  cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
-  // cv::resize(img, img, cv::Size(224, 224));
-  img.convertTo(img, CV_32FC3, 1.0 / 255.0);
-  torch::Tensor img_ = torch::from_blob(img.data, {img.rows, img.cols, 3}, torch::kFloat32);
+  // 读取灰度图片
+  cv::Mat img = cv::imread(path.string(), cv::IMREAD_UNCHANGED);
+
+  // cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
+  cv::resize(img, img, cv::Size(average_width, average_height)); // 同一批次的图片大小相同，否则dataloader将返回vector包装的张量
+  img.convertTo(img, CV_32F, 1.0 / 255.0);
+  torch::Tensor img_ = torch::from_blob(img.data, {average_width, average_height, 1}, torch::kFloat32).permute({2, 0, 1});
   torch::Tensor label_ = torch::tensor(label, torch::kLong);
+  // std::cout << img_.sizes() << std::endl;
   return {img_, label_};
 }
 // torch::optional<> 用于表示可选值,即值可能存在或不存在
@@ -44,7 +58,6 @@ std::optional<size_t> ImageDataset::size() const
 // 递归遍历目录
 void ImageDataset::recursive_rglob(const std::string &directory_path, std::vector<std::string> *const paths_ptr)
 {
-
   for (const auto &entry : std::filesystem::directory_iterator(directory_path))
   {
     if (std::filesystem::is_regular_file(entry))
