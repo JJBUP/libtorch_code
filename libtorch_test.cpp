@@ -1,24 +1,31 @@
 #include <torch/torch.h>
+#include <torch/script.h>
 #include <iostream>
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include "linear_regression.h"
 #include "image_classification.h"
 #include "image_dataset.h"
+#include "resnet50.h"
 void tensor_create();
 void tensor_index();
 void tensor_operation();
 void auto_grad();
 void linear_regression();
 void img_classification();
-void img_classification_dataset();
+void alzheimer_s_classification();
+void jit_script_test();
+void object_load_and_save();
 int main()
 {
     // tensor_create();
     // tensor_index();
     // tensor_operation();
     // linear_regression();
-    img_classification_dataset();
+    // test_dataset();
+    // jit_script_test();
+    // object_load_and_save();
+    alzheimer_s_classification();
 }
 
 // 创建tensor
@@ -316,7 +323,7 @@ void img_classification()
               << result << std::endl;
 }
 
-void img_classification_dataset()
+void test_dataset()
 {
     // 元数据
     std::string root_dir = "../data/Alzheimer_s Dataset";
@@ -326,10 +333,69 @@ void img_classification_dataset()
                                            {"VeryMildDemented", 3}};
     // ImageDataset *dataset_ptr = new ImageDataset(root_dir, class_id, "train");
     std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
-    //
+
     torch::data::Example<> dl = dataset_ptr->get(0);
     std::optional<size_t> data_len = dataset_ptr->size(); // 总结一下optioal容器的用法
-    std::cout << "dataset_ptr->size(): " << data_len.value()<<std::endl
-              << "data.data.sizes(): " << dl.data.sizes()<<std::endl
+    std::cout << "dataset_ptr->size(): " << data_len.value() << std::endl
+              << "data.data.sizes(): " << dl.data.sizes() << std::endl
               << "data.target: " << dl.target << std::endl;
+}
+
+void alzheimer_s_classification()
+{
+    // // 元数据
+    // int epoch = 100;
+    // std::string root_dir = "../data/Alzheimer_s Dataset";
+    // std::map<std::string, int> class_id = {{"MildDemented", 0},
+    //                                        {"ModerateDemented", 1},
+    //                                        {"NonDemented", 2},
+    //                                        {"VeryMildDemented", 3}};
+    // // 数据读取
+    // std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
+    // // 数据加载
+    // auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*dataset_ptr, 10);
+    // // 模型
+    std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(3, 3));
+    // // 优化器
+    // torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
+
+    // for (int i = 0; i < epoch; i++)
+    // {
+    //     float loss = 0;
+    //     int batch_num = 0;
+    //     for (torch::data::Example<torch::Tensor, torch::Tensor> &batch : *data_loader)
+    //     {
+    //         torch::Tensor img_t = batch.data;
+    //         torch::Tensor label_t = batch.target;
+    //         optimizer.zero_grad();
+    //         torch::Tensor pred = resnet50_ptr->forward(img_t);
+    //         pred.backward();
+    //         optimizer.step();
+    //         torch::Tensor loss = torch::cross_entropy_loss(pred, label_t);
+    //         batch_num++;
+    //     }
+    //     std::cout << "epoch: " << i << " loss: " << loss / batch_num << std::endl;
+    // }
+    torch::serialize::OutputArchive archive_out;
+    resnet50_ptr->save(archive_out);
+    archive_out.save_to("../logs/resnet.pt");
+    std::cout << "save model success" << std::endl;
+    torch::serialize::InputArchive archive_in;
+    archive_in.load_from("../logs/resnet.pt");
+    std::shared_ptr<Resnet50> resnet50_ptr_load = std::make_shared<Resnet50>(Resnet50(3, 3));
+    resnet50_ptr_load->load(archive_in);
+    std::cout << "load model success" << std::endl;
+}
+void object_load_and_save()
+{
+    std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(3, 3));
+    torch::serialize::OutputArchive archive_out; // 创建输出archive
+    resnet50_ptr->save(archive_out);             // 将模型参数保存到archive
+    archive_out.save_to("../log/resnet.pt");     // 将archive保存到文件
+    std::cout << "save model success" << std::endl;
+    torch::serialize::InputArchive archive_in;                                                // 创建输入archive
+    archive_in.load_from("../log/resnet.pt");                                                 // 从文件加载archive
+    std::shared_ptr<Resnet50> resnet50_ptr_load = std::make_shared<Resnet50>(Resnet50(3, 3)); // 创建一个新的模型
+    resnet50_ptr_load->load(archive_in);                                                      // 从archive加载模型参数
+    std::cout << "load model success" << std::endl;
 }

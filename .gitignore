@@ -1,3 +1,5 @@
 # .vscode/**
 build/**
 data/Alzheimer_s Dataset/**
+ts_model/**
+logs/**

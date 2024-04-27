@@ -19,7 +19,7 @@ ImageDataset::ImageDataset(const std::string &root_dir, const std::map<std::stri
     recursive_rglob(std::filesystem::path(rd) / "test", &paths);
   }
 }
-torch::data::Example<> ImageDataset::get(size_t index)
+torch::data::Example<torch::Tensor, torch::Tensor> ImageDataset::get(size_t index)
 {
   // 如果像传递多个值，则需要使用std::tuple<T1, T2, ...>或重写结构体模板
   // torch::data::Example 具有默认类型值的结构体模板

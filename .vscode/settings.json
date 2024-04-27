@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.json": "json",
         "iostream": "cpp",
         "cctype": "cpp",
         "clocale": "cpp",
@@ -65,7 +66,11 @@
         "mutex": "cpp",
         "stop_token": "cpp",
         "thread": "cpp",
-        "typeindex": "cpp"
-    },
-    // "C_Cpp.errorSquiggles": "disabled"
+        "typeindex": "cpp",
+        "codecvt": "cpp",
+        "ctime": "cpp",
+        "set": "cpp",
+        "iomanip": "cpp",
+        "ratio": "cpp"
+    }
 }
