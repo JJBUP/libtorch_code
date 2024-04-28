@@ -33,9 +33,9 @@ Resnet50::Resnet50(const int in_channel, const int num_classes)
 {
     std::vector<int> kernel_size = {3, 3, 3, 3};
     std::vector<int> deep_num = {3, 4, 6, 3};
-    std::vector<int> out_channel = {256, 512, 1024, 2048};
+    std::vector<int> out_channel = {128, 256, 512, 1024};
     seq_first = torch::nn::Sequential(
-        torch::nn::Conv2d(torch::nn::Conv2dOptions(in_channel, 64, 7).padding(3)),
+        torch::nn::Conv2d(torch::nn::Conv2dOptions(in_channel, 64, 3).padding(1)),
         torch::nn::BatchNorm2d(64),
         torch::nn::ReLU(),
         torch::nn::MaxPool2d(torch::nn::MaxPool2dOptions(3).padding(1).stride(2)));

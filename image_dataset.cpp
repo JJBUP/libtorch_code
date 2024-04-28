@@ -37,17 +37,27 @@ torch::data::Example<torch::Tensor, torch::Tensor> ImageDataset::get(size_t inde
   // torch::data::Example 具有默认类型值的结构体模板
   std::filesystem::path path = paths[index];
   // 获取类别名称
-  std::string label_staing = path.parent_path().stem().string();
-  long label = cls[label_staing];
+  std::string label_string = path.parent_path().stem().string();
+  long label = cls[label_string];
   // 读取灰度图片
-  cv::Mat img = cv::imread(path.string(), cv::IMREAD_UNCHANGED);
-
+  cv::Mat img = cv::imread(path.string(), cv::IMREAD_GRAYSCALE);
   // cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
-  cv::resize(img, img, cv::Size(average_width, average_height)); // 同一批次的图片大小相同，否则dataloader将返回vector包装的张量
-  img.convertTo(img, CV_32F, 1.0 / 255.0);
-  torch::Tensor img_ = torch::from_blob(img.data, {average_width, average_height, 1}, torch::kFloat32).permute({2, 0, 1});
+  // bug注意：
+  // 1. 同一批次的图片大小相同，否则dataloader将返回vector包装的张量
+  // 2. resize可能会导致转换后的tensor出现nan值
+  // cv::resize 使用插值的方式改变图片大小 而img.resize 则不是使用插值的方式改变
+  cv::resize(img, img, cv::Size(average_width, average_height), cv::INTER_LINEAR);
+  img.convertTo(img, CV_32FC1, 1.0f / 255.0f);
+
+  double minVal, maxVal;
+  cv::Point minLoc, maxLoc;
+  cv::minMaxLoc(img, &minVal, &maxVal, &minLoc, &maxLoc);
+
+  torch::Tensor img_ = torch::from_blob(img.data, {1, average_width, average_height}, torch::kFloat32).clone();
   torch::Tensor label_ = torch::tensor(label, torch::kLong);
-  // std::cout << img_.sizes() << std::endl;
+
+  // 检查张量中是否存在NaN值
+
   return {img_, label_};
 }
 // torch::optional<> 用于表示可选值,即值可能存在或不存在

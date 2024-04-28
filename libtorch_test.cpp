@@ -13,10 +13,11 @@ void tensor_operation();
 void auto_grad();
 void linear_regression();
 void img_classification();
-void alzheimer_s_classification();
+void alzheimer_s_classification(int batch_size);
 void jit_script_test();
 void object_load_and_save();
-int main()
+float accuracy_compute(torch::Tensor pl, torch::Tensor l);
+int main(int argc, char *argv[])
 {
     // tensor_create();
     // tensor_index();
@@ -25,7 +26,17 @@ int main()
     // test_dataset();
     // jit_script_test();
     // object_load_and_save();
-    alzheimer_s_classification();
+    if (argc == 1)
+    {
+        std::cout << "argc = " << argc << std::endl;
+        img_classification();
+    }
+    else if (argc == 2)
+    {
+        std::cout << "argc = " << argc << std::endl;
+        std::cout << "argv[1] = " << std::stoi(argv[1]) << std::endl;
+        alzheimer_s_classification(std::stoi(argv[1]));
+    }
 }
 
 // 创建tensor
@@ -346,41 +357,61 @@ void object_load_and_save()
     std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(3, 3));
     torch::serialize::OutputArchive archive_out; // 创建输出archive
     resnet50_ptr->save(archive_out);             // 将模型参数保存到archive
-    archive_out.save_to("../log/resnet.pt");     // 将archive保存到文件
+    archive_out.save_to("../logs/resnet.pt");    // 将archive保存到文件
     std::cout << "save model success" << std::endl;
     torch::serialize::InputArchive archive_in;                                                // 创建输入archive
-    archive_in.load_from("../log/resnet.pt");                                                 // 从文件加载archive
+    archive_in.load_from("../logs/resnet.pt");                                                // 从文件加载archive
     std::shared_ptr<Resnet50> resnet50_ptr_load = std::make_shared<Resnet50>(Resnet50(3, 3)); // 创建一个新的模型
     resnet50_ptr_load->load(archive_in);                                                      // 从archive加载模型参数
     std::cout << "load model success" << std::endl;
 }
 
-void alzheimer_s_classification()
+void alzheimer_s_classification(int batch_size)
 {
+
     // // 元数据
-    int batch_size = 2;
     int epoch = 100;
+    torch::Device device = torch::Device("cuda:0");
     std::string root_dir = "../data/alzheimer_dataset";
     std::map<std::string, int> class_id = {{"MildDemented", 0},
                                            {"ModerateDemented", 1},
                                            {"NonDemented", 2},
                                            {"VeryMildDemented", 3}};
     // 数据读取
-    std::shared_ptr<ImageDataset> dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
+    std::shared_ptr<ImageDataset> train_dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
+    std::shared_ptr<ImageDataset> val_dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "test"));
     // 数据加载
-    auto data_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
+    auto train_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*train_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
+    auto val_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*val_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
+    // 计算批次数量
+    int train_batch_count = 0;
+    for (const auto &batch : *train_loader)
+    {
+        train_batch_count++;
+    }
+    // 计算批次数量
+    int val_batch_count = 0;
+    for (const auto &batch : *val_loader)
+    {
+        val_batch_count++;
+    }
+
     // // 模型
     std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(1, 4));
+    resnet50_ptr->to(device);
     // // 优化器
     torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
     // 学习率调整,目前只提供了StepLR,实现其他的学习率调整方式可以参考torch::optim::StepLR
     torch::optim::StepLR lr_scheduler(optimizer, 100, 0.1);
-
+    float max_prediction = 0;
     for (int i = 0; i < epoch; i++)
     {
-        float loss = 0;
-        int batch_num = 0;
-        for (const std::vector<torch::data::Example<>> &batch : *data_loader)
+        std::cout << ">>>>>>> train stage - epoch: " << i << "<<<<<<<" << std::endl;
+        resnet50_ptr->train(); // 设置为训练模式
+        float train_loss = 0;
+        int train_correct = 0;
+        int tain_batch_num = 0;
+        for (const std::vector<torch::data::Example<>> &batch : *train_loader)
         { // 返回vector包装的批次数据
             std::vector<torch::Tensor> imgs;
             std::vector<torch::Tensor> labels;
@@ -389,25 +420,90 @@ void alzheimer_s_classification()
                 imgs.push_back(data_label.data);
                 labels.push_back(data_label.target);
             }
-            torch::Tensor imgs_t = torch::stack(torch::TensorList(imgs));
-            torch::Tensor labels_t = torch::stack(torch::TensorList(labels));
-            // std::cout << "imgs_t:" << std::endl
-            //           << imgs_t.sizes() << std::endl;
-            // std::cout << "labels_t:" << std::endl
-            //           << labels_t.sizes() << std::endl;
+            torch::Tensor imgs_t = torch::stack(torch::TensorList(imgs)).to(device);
+            torch::Tensor labels_t = torch::stack(torch::TensorList(labels)).to(device);
             // 训练
-            resnet50_ptr->train(); // 设置为训练模式
             torch::Tensor pred = resnet50_ptr->forward(imgs_t);
+
             optimizer.zero_grad();
-            std::cout<<pred.sizes()<<std::endl;
-            std::cout<<labels_t.sizes()<<std::endl;
-            torch::Tensor loss = torch::cross_entropy_loss(pred.argmax(-1,false), labels_t);
+            torch::Tensor loss = torch::cross_entropy_loss(pred, labels_t);
             loss.backward();
             optimizer.step();
-            lr_scheduler.step();
-            batch_num++;
-            std::cout << "loss: " << loss.item<float>() << std::endl;
+            // 后处理
+            torch::Tensor pred_label = torch::argmax(pred, 1);
+            train_loss += loss.item<float>();
+            train_correct = train_correct + torch::sum(pred_label == labels_t).item<float>();
+            tain_batch_num++;
+            std::cout << " epoch: " << i
+                      << " batch_num: " << tain_batch_num << " / " << train_batch_count
+                      << " batch_size: " << batch.size()
+                      << " train_acc: " << torch::sum(pred_label == labels_t).item<float>() / labels_t.size(0)
+                      << " batch_loss: " << loss.item<float>() << std::endl;
         }
-        std::cout << "epoch: " << i << " loss: " << loss / batch_num << std::endl;
+        lr_scheduler.step();
+        std::cout << ">>>>>>> train stage - result - epoch: " << i << "<<<<<<<" << std::endl;
+        std::cout << " epoch: " << i
+                  << " train accuracy: " << train_correct / train_dataset_ptr->size().value()
+                  << " batch_loss: " << train_loss / tain_batch_num << std::endl;
+        // 验证
+        std::cout << ">>>>>>> val stage - epoch: " << i << "<<<<<<<" << std::endl;
+        resnet50_ptr->eval();
+        float val_acc = 0;
+        float val_loss = 0;
+        int val_correct = 0;
+        int val_batch_num = 0;
+        for (const std::vector<torch::data::Example<>> &batch : *val_loader)
+        { // 返回vector包装的批次数据
+            std::vector<torch::Tensor> imgs;
+            std::vector<torch::Tensor> labels;
+            for (torch::data::Example<> data_label : batch)
+            {
+                imgs.push_back(data_label.data);
+                labels.push_back(data_label.target);
+            }
+            torch::Tensor imgs_t = torch::stack(torch::TensorList(imgs)).to(device);
+            torch::Tensor labels_t = torch::stack(torch::TensorList(labels)).to(device);
+            torch::Tensor pred = resnet50_ptr->forward(imgs_t);
+            torch::Tensor loss = torch::cross_entropy_loss(pred, labels_t);
+            // top1 准确率
+            torch::Tensor pred_label = torch::argmax(pred, 1);
+            val_loss = val_loss + loss.item<float>();
+            val_correct = val_correct + torch::sum(pred_label == labels_t).item<float>();
+            val_batch_num++;
+            std::cout << " epoch: " << i
+                      << " batch_num : " << val_batch_num << " / " << val_batch_count
+                      << " batch_size : " << batch.size()
+                      << " val_acc: " << torch::sum(pred_label == labels_t).item<float>() / labels_t.size(0)
+                      << " batch_loss: " << loss.item<float>() << std::endl;
+        }
+        float _val_acc = val_correct / val_dataset_ptr->size().value();
+        std::cout << ">>>>>>> val stage - result - epoch: " << i << "<<<<<<<" << std::endl;
+        std::cout << " epoch: " << i
+                  << " val accuracy: " << _val_acc
+                  << " val loss: " << val_loss / val_batch_num << std::endl;
+        // 保存模型
+        if (val_acc < _val_acc)
+        {
+            std::cout << ">>> The best accuracy :" << _val_acc << std::endl;
+            val_acc = _val_acc;
+            torch::serialize::OutputArchive archive_out;          // 创建输出archive
+            resnet50_ptr->save(archive_out);                      // 将模型参数保存到archive
+            archive_out.save_to("../logs/alzheimer_resnet50.pt"); // 将archive保存到文件
+            std::cout << ">>> save model success !" << std::endl;
+        }
     }
+}
+
+float accuracy_compute(torch::Tensor pl, torch::Tensor l)
+{
+    assert(pl.size(0) == l.size(0));
+    int correct = 0;
+    for (int i = 0; i < pl.size(0); i++)
+    {
+        if (pl[i].item<int>() == l[i].item<int>())
+        {
+            correct++;
+        }
+    }
+    return correct / pl.size(0);
 }
