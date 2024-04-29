@@ -14,6 +14,6 @@ output = trace_model(dummy_input)
 print(output.shape)
 
 # 保存模型
-trace_model.save("trace_resnet50.pt")
-script_model.save("script_resnet50.pt")
+trace_model.save("./logs/jit_script_model/trace_resnet50.pt")
+script_model.save("./logs/jit_script_model/script_resnet50.pt")
 # %%

@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
     if (argc == 1)
     {
         std::cout << "argc = " << argc << std::endl;
-        img_classification();
+        alzheimer_s_classification(2);
     }
     else if (argc == 2)
     {
@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
         std::cout << "argv[1] = " << std::stoi(argv[1]) << std::endl;
         alzheimer_s_classification(std::stoi(argv[1]));
     }
+    // jit_script_test();
 }
 
 // 创建tensor
@@ -366,12 +367,12 @@ void object_load_and_save()
     std::cout << "load model success" << std::endl;
 }
 
-void alzheimer_s_classification(int batch_size)
+void alzheimer_s_classification(int batch_size = 2)
 {
 
     // // 元数据
     int epoch = 100;
-    torch::Device device = torch::Device("cuda:0");
+    torch::Device device = torch::Device("cuda:1");
     std::string root_dir = "../data/alzheimer_dataset";
     std::map<std::string, int> class_id = {{"MildDemented", 0},
                                            {"ModerateDemented", 1},
@@ -380,6 +381,8 @@ void alzheimer_s_classification(int batch_size)
     // 数据读取
     std::shared_ptr<ImageDataset> train_dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "train"));
     std::shared_ptr<ImageDataset> val_dataset_ptr = std::make_shared<ImageDataset>(ImageDataset(root_dir, class_id, "test"));
+    std::cout << "训练数据量: " << train_dataset_ptr->size().value() << std::endl;
+    std::cout << "验证数据量: " << val_dataset_ptr->size().value() << std::endl;
     // 数据加载
     auto train_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*train_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
     auto val_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*val_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
@@ -400,10 +403,11 @@ void alzheimer_s_classification(int batch_size)
     std::shared_ptr<Resnet50> resnet50_ptr = std::make_shared<Resnet50>(Resnet50(1, 4));
     resnet50_ptr->to(device);
     // // 优化器
-    torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
+    torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.05).momentum(0.9));
     // 学习率调整,目前只提供了StepLR,实现其他的学习率调整方式可以参考torch::optim::StepLR
-    torch::optim::StepLR lr_scheduler(optimizer, 100, 0.1);
+    torch::optim::StepLR lr_scheduler(optimizer, 30, 0.1); // 学习率调整, 30轮后学习率乘以0.1
     float max_prediction = 0;
+
     for (int i = 0; i < epoch; i++)
     {
         std::cout << ">>>>>>> train stage - epoch: " << i << "<<<<<<<" << std::endl;
@@ -443,7 +447,7 @@ void alzheimer_s_classification(int batch_size)
         lr_scheduler.step();
         std::cout << ">>>>>>> train stage - result - epoch: " << i << "<<<<<<<" << std::endl;
         std::cout << " epoch: " << i
-                  << " train accuracy: " << train_correct / train_dataset_ptr->size().value()
+                  << " train accuracy: " << train_correct / float(train_dataset_ptr->size().value())
                   << " batch_loss: " << train_loss / tain_batch_num << std::endl;
         // 验证
         std::cout << ">>>>>>> val stage - epoch: " << i << "<<<<<<<" << std::endl;
@@ -468,42 +472,50 @@ void alzheimer_s_classification(int batch_size)
             // top1 准确率
             torch::Tensor pred_label = torch::argmax(pred, 1);
             val_loss = val_loss + loss.item<float>();
-            val_correct = val_correct + torch::sum(pred_label == labels_t).item<float>();
+            val_correct = val_correct + torch::sum(pred_label == labels_t).item<int>();
             val_batch_num++;
             std::cout << " epoch: " << i
                       << " batch_num : " << val_batch_num << " / " << val_batch_count
                       << " batch_size : " << batch.size()
-                      << " val_acc: " << torch::sum(pred_label == labels_t).item<float>() / labels_t.size(0)
+                      << " val_acc: " << torch::sum(pred_label == labels_t).item<int>() / labels_t.size(0)
                       << " batch_loss: " << loss.item<float>() << std::endl;
         }
-        float _val_acc = val_correct / val_dataset_ptr->size().value();
+        float _val_acc = val_correct / float(val_dataset_ptr->size().value());
         std::cout << ">>>>>>> val stage - result - epoch: " << i << "<<<<<<<" << std::endl;
         std::cout << " epoch: " << i
                   << " val accuracy: " << _val_acc
                   << " val loss: " << val_loss / val_batch_num << std::endl;
         // 保存模型
-        if (val_acc < _val_acc)
+        if (true)
         {
             std::cout << ">>> The best accuracy :" << _val_acc << std::endl;
             val_acc = _val_acc;
             torch::serialize::OutputArchive archive_out;          // 创建输出archive
             resnet50_ptr->save(archive_out);                      // 将模型参数保存到archive
-            archive_out.save_to("../logs/alzheimer_resnet50.pt"); // 将archive保存到文件
+            archive_out.save_to("../logs/alzheimer_resnet50/alzheimer_resnet50.pt"); // 将archive保存到文件
             std::cout << ">>> save model success !" << std::endl;
         }
     }
 }
 
-float accuracy_compute(torch::Tensor pl, torch::Tensor l)
+void jit_script_test()
 {
-    assert(pl.size(0) == l.size(0));
-    int correct = 0;
-    for (int i = 0; i < pl.size(0); i++)
+    std::shared_ptr<torch::jit::Module> resnet50_ptr = std::make_shared<torch::jit::Module>(torch::jit::load("../logs/jit_script_model/script_resnet50.pt"));
+    resnet50_ptr->eval();
+    std::cout << ">>> jit script model load success !" << std::endl;
+    for (int i = 0; i < 10; i++)
     {
-        if (pl[i].item<int>() == l[i].item<int>())
-        {
-            correct++;
-        }
+        torch::Tensor input = torch::rand({1, 3, 224, 224});
+        // std::vector<IValue> 表示了一个装有 torch::jit::IValue 对象的向量，因此可以容纳各种类型的输入数据。
+        // torch::jit::IValue 类型是 PyTorch 中用于表示任意数据类型的一个抽象类，它可以表示张量、标量、列表、字典等各种数据类型。
+        torch::Tensor output = resnet50_ptr->forward({input}).toTensor();
+        std::cout << ">>> jit script model output: " << output.slice(1, 0, 5) << std::endl;
     }
-    return correct / pl.size(0);
+    // 虽然接收参数是std::vector<torch::jit::IValue>，但实际要根据导出的模型参数来传参
+    // for (int i = 0; i < 10; i++)
+    // {
+    //     std::vector<torch::Tensor> input = {torch::rand({3, 224, 224}), torch::rand({3, 224, 224})};
+    //     torch::Tensor output = resnet50_ptr->forward({input}).toTensor();
+    //     std::cout << ">>> jit script model output: " << output.slice(1, 0, 5) << std::endl;
+    // }
 }
