@@ -3,8 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <opencv2/opencv.hpp>
-#include "linear_regression.h"
-#include "image_classification.h"
+#include "linearnet.h"
+#include "imgclsnet.h"
 #include "image_dataset.h"
 #include "resnet50.h"
 void tensor_type();
@@ -25,10 +25,11 @@ int main(int argc, char *argv[])
     // tensor_type();
     // tensor_dim();
     // tensor_create();
-    auto_grad();
+    // auto_grad();
     // tensor_index();
     // tensor_operation();
     // linear_regression();
+    img_classification();
     // test_dataset();
     // jit_script_test();
     // object_load_and_save();

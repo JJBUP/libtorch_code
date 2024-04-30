@@ -1,8 +1,8 @@
 #include <torch/torch.h>
-#include "image_classification.h"
+#include "imgclsnet.h"
 
 ImageClassification::ImageClassification(int in_channel, int class_num, int stage = 4)
-{   
+{
     // 忘记初始化
     convs = torch::nn::Sequential();
     int in_ch = in_channel;
@@ -27,6 +27,7 @@ ImageClassification::ImageClassification(int in_channel, int class_num, int stag
     // 注册模块
     register_module("convs", convs);
     register_module("fcs", fcs);
+    torch::nn::ModuleList modules;
 }
 torch::Tensor ImageClassification::forward(torch::Tensor x)
 {
@@ -34,4 +35,5 @@ torch::Tensor ImageClassification::forward(torch::Tensor x)
     x = torch::mean(torch::mean(x, -1), -1); // bc
     x = fcs->forward(x); // bn_class
     return x;
+
 }
