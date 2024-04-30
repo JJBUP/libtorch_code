@@ -397,7 +397,7 @@ void object_load_and_save()
 void alzheimer_s_classification(int batch_size = 2)
 {
 
-    // // 元数据
+    // 元数据
     int epoch = 100;
     torch::Device device = torch::Device("cuda:1");
     std::string root_dir = "../data/alzheimer_dataset";
@@ -412,7 +412,7 @@ void alzheimer_s_classification(int batch_size = 2)
     std::cout << "验证数据量: " << val_dataset_ptr->size().value() << std::endl;
     // 数据加载
     auto train_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*train_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
-    auto val_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*val_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size));
+    auto val_loader = torch::data::make_data_loader<torch::data::samplers::RandomSampler>(*val_dataset_ptr, torch::data::DataLoaderOptions().workers(4).batch_size(batch_size).enforce_ordering(true));
     // 计算批次数量
     int train_batch_count = 0;
     for (const auto &batch : *train_loader)

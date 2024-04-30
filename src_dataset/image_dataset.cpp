@@ -48,14 +48,8 @@ torch::data::Example<torch::Tensor, torch::Tensor> ImageDataset::get(size_t inde
   // cv::resize 使用插值的方式改变图片大小 而img.resize 则不是使用插值的方式改变
   cv::resize(img, img, cv::Size(average_width, average_height), cv::INTER_LINEAR);
   img.convertTo(img, CV_32FC1, 1.0f / 255.0f);
-
-  double minVal, maxVal;
-  cv::Point minLoc, maxLoc;
-  cv::minMaxLoc(img, &minVal, &maxVal, &minLoc, &maxLoc);
-
   torch::Tensor img_ = torch::from_blob(img.data, {1, average_width, average_height}, torch::kFloat32).clone();
   torch::Tensor label_ = torch::tensor(label, torch::kLong);
-
   // 检查张量中是否存在NaN值
 
   return {img_, label_};

@@ -24,11 +24,11 @@ include_directories(${TORCH_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # 链接cpp到目标
-add_executable(libtorch_test ${SOURCES1} ${SOURCES2} ${SOURCES3})
+add_executable(libtorch_main ${SOURCES1} ${SOURCES2} ${SOURCES3})
 # 链接头文件到目标
-target_include_directories(libtorch_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} 
+target_include_directories(libtorch_main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} 
                                                 ${CMAKE_CURRENT_SOURCE_DIR}/src_model
                                                 ${CMAKE_CURRENT_SOURCE_DIR}/src_dataset)
 
 # 链接 第三方库
-target_link_libraries(libtorch_test ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(libtorch_main ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES})

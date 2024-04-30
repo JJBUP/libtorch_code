@@ -7,7 +7,7 @@ model = torchvision.models.resnet50(pretrained=True)
 dummy_input = torch.rand(1, 3, 224, 224)
 
 trace_model = torch.jit.trace(model, dummy_input)
-script_model = torch.jit.trace(model, dummy_input)
+script_model = torch.jit.script(model)
 ("resnet18.pt")
 print("torchscript model exported!")
 output = trace_model(dummy_input)
