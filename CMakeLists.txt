@@ -12,11 +12,11 @@ find_package(Torch REQUIRED CONFIG PATHS /home/jjb/libtorch)
 find_package(OpenCV REQUIRED CONFIG PATHS /home/jjb/opencv-4.9.0-compile/)
 
 file(GLOB SOURCES "./*.cpp")
-add_executable(executive-program ${SOURCES})
+add_executable(libtorch_test ${SOURCES})
 
 # 在 CMake 中包含头文件路径
 include_directories(${TORCH_INCLUDE_DIRS})
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 # 链接 PyTorch 库
-target_link_libraries(executive-program ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(libtorch_test ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES})

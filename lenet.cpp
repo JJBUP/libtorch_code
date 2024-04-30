@@ -13,7 +13,7 @@ Lenet5::Lenet5()
 }
 
 // 前向传播
-torch::Tensor Lenet5::forward(torch::Tensor x)
+torch::Tensor Lenet5::forward(torch::Tensor x) 
 {
   x = max_pool(relu(conv1(x)));
   x = max_pool(relu(conv2(x)));

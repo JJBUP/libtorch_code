@@ -72,6 +72,7 @@
         "set": "cpp",
         "iomanip": "cpp",
         "ratio": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "shared_mutex": "cpp"
     }
 }

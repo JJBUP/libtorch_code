@@ -15,5 +15,4 @@ private:
     std::map<std::string, int> cls;
     std::vector<std::string> paths;
     std::string md;
-
 };

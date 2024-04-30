@@ -7,7 +7,9 @@
 #include "image_classification.h"
 #include "image_dataset.h"
 #include "resnet50.h"
+void tensor_type();
 void tensor_create();
+void tensor_dim();
 void tensor_index();
 void tensor_operation();
 void auto_grad();
@@ -17,35 +19,67 @@ void alzheimer_s_classification(int batch_size);
 void jit_script_test();
 void object_load_and_save();
 float accuracy_compute(torch::Tensor pl, torch::Tensor l);
+
 int main(int argc, char *argv[])
 {
+    // tensor_type();
+    // tensor_dim();
     // tensor_create();
+    auto_grad();
     // tensor_index();
     // tensor_operation();
     // linear_regression();
     // test_dataset();
     // jit_script_test();
     // object_load_and_save();
-    if (argc == 1)
-    {
-        std::cout << "argc = " << argc << std::endl;
-        alzheimer_s_classification(2);
-    }
-    else if (argc == 2)
-    {
-        std::cout << "argc = " << argc << std::endl;
-        std::cout << "argv[1] = " << std::stoi(argv[1]) << std::endl;
-        alzheimer_s_classification(std::stoi(argv[1]));
-    }
+    // if (argc == 1)
+    // {
+    //     std::cout << "argc = " << argc << std::endl;
+    //     alzheimer_s_classification(2);
+    // }
+    // else if (argc == 2)
+    // {
+    //     std::cout << "argc = " << argc << std::endl;
+    //     std::cout << "argv[1] = " << std::stoi(argv[1]) << std::endl;
+    //     alzheimer_s_classification(std::stoi(argv[1]));
+    // }
     // jit_script_test();
 }
 
+void tensor_type()
+{
+    torch::Tensor a = torch::arange(12);
+    a = a.reshape({2, 2, -1});
+    // 查看数据类型
+    std::cout << "a.dtype() = " << a.dtype() << std::endl;
+    // 修改数据类型
+    torch::Tensor a1 = a.to(torch::kFloat32);
+    torch::Tensor a2 = a.toType(torch::kFloat32);
+    torch::Tensor a3 = a.type_as(a1);
+    std::cout << "a1.to() = " << a1.dtype() << std::endl;
+    std::cout << "a2.toType() = " << a2.dtype() << std::endl;
+    std::cout << "a3.type_as() = " << a3.dtype() << std::endl;
+}
+
+void tensor_dim()
+{
+
+    torch::Tensor a = torch::arange(12).reshape({2, 2, -1});
+    std::cout << "a.dim() = " << a.dim() << std::endl; // dim() 函数,获取维度数量,int64_t对象
+    std::cout << a.view({3, 2}) << std::endl;          // view() 函数,获取重塑张量
+    std::cout << a.reshape({3, 2}) << std::endl;       // reshape() 函数,获取重塑张量
+    std::cout << a.flatten() << std::endl;             // flatten() 函数,获取展平张量
+    std::cout << a.unsqueeze(0) << std::endl;          // unsqueeze() 函数,获取增加维度张量
+    std::cout << a.squeeze(0) << std::endl;            // squeeze() 函数,获取删除维度张量
+    std::cout << a.transpose(0, 1) << std::endl;       // transpose() 函数,获取转置张量
+    std::cout << a.permute({1, 0}) << std::endl;       // permute() 函数,获取转置张量
+}
 // 创建tensor
 void tensor_create()
 {
     // 基础数据创建
-    torch::Tensor a = torch::zeros({2, 3});
-    torch::Tensor b = torch::ones({2, 3});
+    torch::Tensor a = torch::zeros({2, 3}, torch::TensorOptions().dtype(torch::kFloat32));
+    torch::Tensor b = torch::ones({2, 3}, torch::TensorOptions().device(torch::kCPU));
     torch::Tensor c = torch::eye({3});
     torch::Tensor d = torch::full({2, 3}, 3.14);
     torch::Tensor e = torch::rand({2, 3});  // uniform distribution, 0-1的均匀分布
@@ -74,16 +108,17 @@ void tensor_index()
     std::cout << "广播机制测试：" << std::endl
               << a + torch::tensor({200, 200, 200}) << std::endl;
     // 1.查 Getter(获取器):C++ 使用 Tensor中成员函数index来实现python的“[]”切片
-    torch::Tensor b = a.index({0});                                                                            // 对应python中的[0]
-    torch::Tensor c = a.index({0, 1});                                                                         // 对应python中的[0,1]
-    torch::Tensor d = a.index({0, 1, -1});                                                                     // 对应python中的[0,1,-1]
-    torch::Tensor e = a.index({torch::indexing::Slice(), 1, 2});                                               // Slice(int start,int end)类用于设定单一维度切片范围,Slice()对应python中的:
-    torch::Tensor f = a.index({torch::indexing::Slice(0, -1), 1, 2});                                          // Slice(int start,int end)类用于设定单一维度切片范围,Slice()对应python中的:
-    torch::Tensor g = a.index({"...", 2});                                                                     // "..."对应python中的...
-    torch::Tensor h = a.index({torch::indexing::Ellipsis, 2});                                                 // Ellipsis对应python中的...
-    torch::Tensor i = a.index({torch::indexing::None});                                                        // None对应python中的None,增加一个新的维度
-    torch::Tensor j = torch::rand({2, 3}).to(torch::kBool).index({"...", true});                               // kBool为ScalarType基础张量类型,true为python中的True
-    torch::Tensor k = a.index({torch::tensor({0, 0, 0}), torch::tensor({1, 1, 1}), torch::tensor({2, 2, 2})}); // int类型tensor作为索引
+    torch::Tensor b = a.index({0});                                              // 对应python中的[0]
+    torch::Tensor c = a.index({0, 1});                                           // 对应python中的[0,1]
+    torch::Tensor d = a.index({0, 1, -1});                                       // 对应python中的[0,1,-1]
+    torch::Tensor e = a.index({torch::indexing::Slice(), 1, 2});                 // Slice(int start,int end)类用于设定单一维度切片范围,Slice()对应python中的:
+    torch::Tensor f = a.index({torch::indexing::Slice(0, -1), 1, 2});            // Slice(int start,int end)类用于设定单一维度切片范围,Slice()对应python中的:
+    torch::Tensor g = a.index({"...", 2});                                       // "..."对应python中的...
+    torch::Tensor h = a.index({torch::indexing::Ellipsis, 2});                   // Ellipsis对应python中的...
+    torch::Tensor i = a.index({torch::indexing::None});                          // None对应python中的None,增加一个新的维度
+    torch::Tensor j = torch::rand({2, 3}).to(torch::kBool).index({"...", true}); // kBool为ScalarType基础张量类型,true为python中的True
+    torch::Tensor k = a.index({torch::tensor({0, 0, 0}),
+                               torch::tensor({1, 1, 1}), torch::tensor({2, 2, 2})}); // int类型tensor作为索引
     std::cout << "a_index:" << std::endl
               << a << std::endl;
     std::cout << "b_index:" << std::endl
@@ -164,47 +199,40 @@ void tensor_operation()
     std::cout << a.dim() << std::endl;                // dim() 函数,获取维度数量,int64_t对象
     std::cout << a.device() << std::endl;             // device() 函数,获取设备类型
     std::cout << a.dtype() << std::endl;              // dtype() 函数,获取数据类型
-    std::cout << a.requires_grad() << std::endl;      // requires_grad() 函数,获取是否需要梯度,
-
-    // 修改数据
+    std::cout << a.requires_grad() << std::endl;      // requires_grad() 函数,获取是否需要梯度
+    std::cout << a.data() << std::endl;               // data() 函数,获取数据指针
+    std::cout << a.grad() << std::endl;               // grad() 函数,获取梯度
+    // 设备转换
     std::cout << a.to(torch::kCUDA) << std::endl;                // to() 函数,获取指定设备类型张量
     std::cout << a.to(torch::Device(torch::kCUDA)) << std::endl; // to() 函数,获取指定设备类型张量
     std::cout << a.to(torch::Device("cuda:0")) << std::endl;     // to() 函数,获取指定设备类型张量
     std::cout << a.to(torch::kCPU) << std::endl;                 // to() 函数,获取指定设备类型张量
-    std::cout << a.detach() << std::endl;                        // detach() 函数,获取不带梯度张量
     std::cout << a.cuda() << std::endl;                          // cuda() 函数,获取cuda张量
-    std::cout << a.data() << std::endl;                          // data() 函数,获取数据指针
-    std::cout << a.grad() << std::endl;                          // grad() 函数,获取梯度
-    std::cout << a[0][0].item<float>() << std::endl;             // item() 函数,获取数据
-    std::cout << a[0][0].item() << std::endl;                    // item() 函数,获取数据
-    std::cout << a.isnan() << std::endl;                         // isnan() 函数,获取是否是NaN
-    std::cout << a.isinf() << std::endl;                         // isinf() 函数,获取是否是无穷大
-    std::cout << a.isfinite() << std::endl;                      // isfinite() 函数,获取是否是有穷
-    std::cout << a.clone() << std::endl;                         // clone() 函数,获取克隆张量
-    std::cout << a.flatten() << std::endl;                       // flatten() 函数,获取展平张量
-    std::cout << a.view({3, 2}) << std::endl;                    // view() 函数,获取重塑张量
-    std::cout << a.reshape({3, 2}) << std::endl;                 // reshape() 函数,获取重塑张量
-    std::cout << a.transpose(0, 1) << std::endl;                 // transpose() 函数,获取转置张量
-    std::cout << a.permute({1, 0}) << std::endl;                 // permute() 函数,获取转置张量
-    std::cout << a.unsqueeze(0) << std::endl;                    // unsqueeze() 函数,获取增加维度张量
-    std::cout << a.squeeze(0) << std::endl;                      // squeeze() 函数,获取删除维度张量
-    std::cout << a.cumsum(0) << std::endl;                       // cumsum() 函数,获取累加张量
-    std::cout << a.cumprod(0) << std::endl;                      // cumprod() 函数,获取累乘张量
-    std::cout << std::get<0>(a.topk(1, -1)) << std::endl;        // topk() 函数,获取topk张量数值
-    std::cout << std::get<1>(a.topk(1, -1)) << std::endl;        // topk() 函数,获取topk张量索引
-    std::cout << a.contiguous() << std::endl;                    // contiguous() 函数,获取连续张量
-    std::cout << torch::cat({a, a}, 1) << std::endl;             // cat() 函数,获取拼接张量
+    std::cout << a.cpu() << std::endl;                           // cuda() 函数,获取cuda张量
+
+    std::cout << a.detach() << std::endl;                 // detach() 函数,获取不带梯度张量
+    std::cout << a.clone() << std::endl;                  // clone() 函数,获取克隆张量
+    std::cout << a[0][0].item<float>() << std::endl;      // item() 函数,获取数据
+    std::cout << a[0][0].item() << std::endl;             // item() 函数,获取数据
+    std::cout << a.cumsum(0) << std::endl;                // cumsum() 函数,获取累加张量
+    std::cout << a.cumprod(0) << std::endl;               // cumprod() 函数,获取累乘张量
+    std::cout << std::get<0>(a.topk(1, -1)) << std::endl; // topk() 函数,获取topk张量数值
+    std::cout << std::get<1>(a.topk(1, -1)) << std::endl; // topk() 函数,获取topk张量索引
+    std::cout << a.contiguous() << std::endl;             // contiguous() 函数,获取连续张量
+    std::cout << torch::cat({a, a}, 1) << std::endl;      // cat() 函数,获取拼接张量
+    std::cout << torch::stack({a, a}, 1) << std::endl;    // stack() 函数,获取堆叠张量
     // std::cout << a.to_sparse() << std::endl;                     // to_sparse() 函数,获取稀疏张量
     // std::cout << a.to_dense() << std::endl;                      // to_dense() 函数,获取稠密张量
     // std::cout << a.to_sparse_csr() << std::endl;                 // to_sparse_csr() 函数,获取稀疏张量
     // std::cout << a.to_sparse_csc() << std::endl;                 // to_sparse_csc() 函数,获取稀疏张量
 
     // 数学计算
-    std::tuple svd_data = a.svd();
+    std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> svd_data = a.svd();
     std::cout << std::get<0>(svd_data) << std::get<1>(svd_data) << std::get<2>(svd_data) << std::endl; // svd() 函数,获取SVD张量
     std::cout << a.t() << std::endl;
     std::cout << a.argmax() << std::endl;
-    std::cout << a.max() << std::endl;
+    std::tuple<torch::Tensor, torch::Tensor> max_idx_val = a.max(1, true);
+    std::cout << std::get<0>(max_idx_val) << std::get<1>(max_idx_val) << std::endl;
     std::cout << a.amax() << std::endl;
     std::cout << a.where(a > 0.5, -1) << std::endl;
     std::cout << a.clamp(0, 1) << std::endl; // clamp() 函数,获取限制在指定范围内的张量
@@ -219,6 +247,14 @@ void tensor_operation()
     std::cout << a.is_cpu() << std::endl;            // is_cpu() 函数,获取是否在CPU上
     std::cout << a.is_floating_point() << std::endl; // is_floating_point() 函数,获取是否是浮点数
     std::cout << a.is_same(a) << std::endl;          // is_same() 函数,获取是否是相同的张量
+    std::cout << a.isnan() << std::endl;             // isnan() 函数,获取是否是NaN
+    std::cout << a.isinf() << std::endl;             // isinf() 函数,获取是否是无穷大
+    std::cout << a.isfinite() << std::endl;          // isfinite() 函数,获取是否是有穷
+    std::cout << a.all() << std::endl;               // all() 函数,获取是否全部为真
+    std::cout << a.any() << std::endl;               // any() 函数,获取是否任意为真
+    std::cout << a.equal(a) << std::endl;            // equal() 函数,获取是否相等
+    std::cout << a.is_nonzero() << std::endl;        // is_nonzero() 函数,获取是否非零
+    std::cout << a.is_same_size(a) << std::endl;     // is_same_size() 函数,获取是否相同大小
 }
 
 // 自动微分
@@ -245,16 +281,7 @@ void auto_grad()
     std::cout << "c.grad:" << c.grad() << std::endl;
     std::cout << "d.grad:" << d.grad() << std::endl; // 非叶子节点
     std::cout << "e.gard:" << e.grad() << std::endl; // 非叶子节点
-    d = c * (a * b);
-    e = d.sum();
-    d.retain_grad(); // 保留梯度
-    e.retain_grad(); // 保留梯度
-    e.backward();    // 反向传播
-    std::cout << "a.grad:" << a.grad() << std::endl;
-    std::cout << "b.grad:" << b.grad() << std::endl;
-    std::cout << "c.grad:" << c.grad() << std::endl;
-    std::cout << "d.grad:" << d.grad() << std::endl; // 非叶子节点
-    std::cout << "e.gard:" << e.grad() << std::endl; // 非叶子节点
+    // e.backward();    // 第二次反向传播会因计算图消失而报错,需要设置retain_graph(true)
 }
 
 // 模拟线性回归
@@ -310,7 +337,6 @@ void img_classification()
         torch::Tensor label = torch::one_hot(torch::ones(10, torch::kInt64), 5).toType(torch::kFloat32);
         // std::cout << "Image Size: " << std::endl
         //           << img.sizes() << std::endl;
-
         torch::Tensor pred = model_ptr->forward(img);
         // std::cout << "pred:" << std::endl
         //           << pred << std::endl
@@ -490,8 +516,8 @@ void alzheimer_s_classification(int batch_size = 2)
         {
             std::cout << ">>> The best accuracy :" << _val_acc << std::endl;
             val_acc = _val_acc;
-            torch::serialize::OutputArchive archive_out;          // 创建输出archive
-            resnet50_ptr->save(archive_out);                      // 将模型参数保存到archive
+            torch::serialize::OutputArchive archive_out;                             // 创建输出archive
+            resnet50_ptr->save(archive_out);                                         // 将模型参数保存到archive
             archive_out.save_to("../logs/alzheimer_resnet50/alzheimer_resnet50.pt"); // 将archive保存到文件
             std::cout << ">>> save model success !" << std::endl;
         }
