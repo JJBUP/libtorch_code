@@ -433,8 +433,7 @@ void alzheimer_s_classification(int batch_size = 2)
     torch::optim::SGD optimizer(resnet50_ptr->parameters(), torch::optim::SGDOptions(0.05).momentum(0.9));
     // 学习率调整,目前只提供了StepLR,实现其他的学习率调整方式可以参考torch::optim::StepLR
     torch::optim::StepLR lr_scheduler(optimizer, 30, 0.1); // 学习率调整, 30轮后学习率乘以0.1
-    float max_prediction = 0;
-
+    float val_acc = 0;
     for (int i = 0; i < epoch; i++)
     {
         std::cout << ">>>>>>> train stage - epoch: " << i << "<<<<<<<" << std::endl;
@@ -479,7 +478,6 @@ void alzheimer_s_classification(int batch_size = 2)
         // 验证
         std::cout << ">>>>>>> val stage - epoch: " << i << "<<<<<<<" << std::endl;
         resnet50_ptr->eval();
-        float val_acc = 0;
         float val_loss = 0;
         int val_correct = 0;
         int val_batch_num = 0;
@@ -513,7 +511,7 @@ void alzheimer_s_classification(int batch_size = 2)
                   << " val accuracy: " << _val_acc
                   << " val loss: " << val_loss / val_batch_num << std::endl;
         // 保存模型
-        if (true)
+        if (val_acc < _val_acc)
         {
             std::cout << ">>> The best accuracy :" << _val_acc << std::endl;
             val_acc = _val_acc;
